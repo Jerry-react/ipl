@@ -1,0 +1,16 @@
+workflows:
+  android-build:
+    name: Android Build
+    max_build_duration: 60
+    environment:
+      node: latest
+
+    scripts:
+      - npm install
+      - npm run build
+      - npx cap sync android
+      - cd android
+      - ./gradlew assembleDebug
+
+    artifacts:
+      - android/app/build/outputs/**/*.apk
