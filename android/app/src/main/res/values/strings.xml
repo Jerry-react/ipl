@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">ipl</string>
-    <string name="title_activity_main">ipl</string>
-    <string name="package_name">com.example.app</string>
-    <string name="custom_url_scheme">com.example.app</string>
+    <string name="app_name">IPL Contest</string>
+    <string name="title_activity_main">IPL Contest</string>
+    <string name="package_name">com.iplcontest.app</string>
+    <string name="custom_url_scheme">com.iplcontest.app</string>
 </resources>
