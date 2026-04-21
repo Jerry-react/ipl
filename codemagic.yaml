@@ -8,7 +8,7 @@ workflows:
     scripts:
       - npm install
       - npm run build
-      - npx cap sync android
+      - npx cap sync
       - cd android
       - chmod +x gradlew
       - ./gradlew assembleDebug
