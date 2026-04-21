@@ -9,9 +9,8 @@ workflows:
       - npm install
       - npm run build
       - npx cap sync
-      - cd android
-      - chmod +x gradlew
-      - ./gradlew assembleDebug
+      - chmod +x android/gradlew
+      - android/gradlew assembleDebug
 
     artifacts:
       - android/app/build/outputs/**/*.apk
