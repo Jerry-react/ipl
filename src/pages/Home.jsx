@@ -1,13 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   buildDefaultData,
-  downloadJson,
+  downloadExcel,
   ensureConfig,
   loadData,
   makeMatch,
   makePlayer,
   readExcelFile,
-  readJsonFile,
   saveData,
 } from '../storage.js'
 import './Home.css'
@@ -25,7 +24,7 @@ function sortPlayers(players) {
 export default function Home() {
   const [tab, setTab] = useState('results') // results | add | players
   const [data, setData] = useState(() => loadData())
-  const fileRef = useRef(null)
+  const [successMsg, setSuccessMsg] = useState('')
   const xlsxRef = useRef(null)
   const menuBtnRef = useRef(null)
   const menuRef = useRef(null)
@@ -97,20 +96,6 @@ export default function Home() {
   function resetAll() {
     setData(buildDefaultData())
     setTab('results')
-  }
-
-  async function onImportFile(e) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    try {
-      const imported = await readJsonFile(file)
-      setData(imported)
-      setTab('results')
-    } catch {
-      // ignore invalid files
-    } finally {
-      e.target.value = ''
-    }
   }
 
   async function onImportExcel(e) {
@@ -237,7 +222,6 @@ export default function Home() {
           <h1 className="home-title">IPL Contest</h1>
 
           <div className="home-actions">
-            <input ref={fileRef} onChange={onImportFile} type="file" accept="application/json" hidden />
             <input ref={xlsxRef} onChange={onImportExcel} type="file" accept=".xlsx,.xls" hidden />
             <div className="menu">
               <button
@@ -253,19 +237,8 @@ export default function Home() {
               </button>
               {menuOpen ? (
                 <div ref={menuRef} className="menu-popover" role="menu" aria-label="Actions">
-                  <button className="menu-item" type="button" role="menuitem" onClick={() => downloadJson(data)}>
-                    Export JSON
-                  </button>
-                  <button
-                    className="menu-item"
-                    type="button"
-                    role="menuitem"
-                    onClick={() => {
-                      setMenuOpen(false)
-                      fileRef.current?.click()
-                    }}
-                  >
-                    Import JSON
+                  <button className="menu-item" type="button" role="menuitem" onClick={() => downloadExcel(data)}>
+                    Export Excel
                   </button>
                   <button
                     className="menu-item"
@@ -315,6 +288,7 @@ export default function Home() {
           totals={totals}
           matches={matchesNewestFirst}
           onDeleteMatch={removeMatch}
+          successMsg={successMsg}
         />
       ) : tab === 'add' ? (
         <AddTab
@@ -322,6 +296,11 @@ export default function Home() {
           onSetMaxPosition={setMaxPosition}
           onSetPositionAmount={setPositionAmount}
           onAddMatches={addMatches}
+          onSuccess={(msg) => {
+            setSuccessMsg(msg)
+            setTab('results')
+            window.setTimeout(() => setSuccessMsg(''), 2000)
+          }}
           playersSorted={sortPlayers(data.players)}
         />
       ) : (
@@ -367,7 +346,7 @@ export default function Home() {
   )
 }
 
-function ResultsTab({ totals, matches, playersById, onDeleteMatch }) {
+function ResultsTab({ totals, matches, playersById, onDeleteMatch, successMsg }) {
 
   // Count distinct matches (by batchId or date for legacy) and sum all fees
   const { matchCount, totalFees } = useMemo(() => {
@@ -444,9 +423,15 @@ function ResultsTab({ totals, matches, playersById, onDeleteMatch }) {
 
   return (
     <div className="grid">
+      {successMsg && (
+        <div className="toast-slide" role="status" aria-live="polite">
+          <span className="toast-icon" aria-hidden="true">✅</span>
+          <span className="toast-message">{successMsg}</span>
+        </div>
+      )}
       <section className="card">
         <h2>Leaderboard</h2>
-        <div className="inline">
+        <div className="inline" style={{ marginBottom: '2vh' }}>
           <span className="pill">
             Matches: <strong>{matchCount}</strong>
           </span>
@@ -458,6 +443,7 @@ function ResultsTab({ totals, matches, playersById, onDeleteMatch }) {
         {totals.length === 0 ? (
           <p className="hint">Add players first, then add match results.</p>
         ) : (
+          <div className="table-scroll">
           <table className="table">
             <thead>
               <tr>
@@ -489,6 +475,7 @@ function ResultsTab({ totals, matches, playersById, onDeleteMatch }) {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </section>
 
@@ -542,7 +529,7 @@ function PlayersTab({ playersSorted, onAddPlayer, onRemovePlayer }) {
     <div className="grid">
       <section className="card">
         <h2>Players</h2>
-        <form className="inline" onSubmit={submitPlayer}>
+        <form className="inline inline--add-player" onSubmit={submitPlayer}>
           <label className="field" style={{ flex: '1 1 240px' }}>
             Add player
             <input
@@ -581,6 +568,7 @@ function AddTab({
   onSetMaxPosition,
   onSetPositionAmount,
   onAddMatches,
+  onSuccess,
 }) {
   const maxPosition = data.positionConfig.maxPosition
 
@@ -681,8 +669,8 @@ function AddTab({
 
     onAddMatches(entries)
 
-    // Success popup + reset form
-    setSuccess(`Saved results for ${playersSorted.length} player(s) on ${date}.`)
+    // Reset form and notify parent
+    const msg = `Saved results for ${playersSorted.length} player(s) on ${date}.`
     setDate(new Date().toISOString().slice(0, 10))
     setMatchFee(20)
     setPositionsByPlayerId(() => {
@@ -692,31 +680,16 @@ function AddTab({
     })
 
     window.clearTimeout(submitMatch._t)
-    submitMatch._t = window.setTimeout(() => setSuccess(''), 2200)
+    submitMatch._t = window.setTimeout(() => {
+      setSuccess('')
+      onSuccess(msg)
+    }, 0)
   }
 
   return (
     <div className="grid">
       <section className="card">
         <h2>Add match entry</h2>
-        {success ? (
-          <div className="toast-backdrop" role="presentation" onClick={() => setSuccess('')}>
-            <div
-              className="toast toast--success toast--center"
-              role="status"
-              aria-live="polite"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <span className="toast-icon" aria-hidden="true">
-                ✅
-              </span>
-              <div className="toast-content">
-                <div className="toast-title">Saved</div>
-                <div className="toast-message">{success}</div>
-              </div>
-            </div>
-          </div>
-        ) : null}
         {playersSorted.length === 0 ? (
           <p className="hint">Add players in Players tab first.</p>
         ) : (

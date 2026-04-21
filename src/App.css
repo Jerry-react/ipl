@@ -182,3 +182,113 @@
     border-right-color: var(--border);
   }
 }
+
+/* Launch splash screen */
+.splash {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background:
+    radial-gradient(900px 420px at 15% -10%, rgba(255, 45, 85, 0.18), transparent 60%),
+    radial-gradient(700px 380px at 85% 0%, rgba(255, 255, 255, 0.06), transparent 55%),
+    var(--bg);
+}
+
+.splash-card {
+  width: min(520px, 92vw);
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  padding: 22px 18px;
+  text-align: center;
+}
+
+.splash-logo {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 10px;
+  font-family: var(--heading);
+  font-weight: 900;
+  font-size: 34px;
+  letter-spacing: -1px;
+  line-height: 1.05;
+}
+
+.splash-logo-accent {
+  background: linear-gradient(90deg, rgba(255, 45, 85, 1), rgba(255, 165, 0, 0.98));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.splash-logo-rest {
+  color: var(--text-h);
+}
+
+.splash-sub {
+  margin-top: 10px;
+  font: 13px/1 var(--mono);
+  letter-spacing: 0.2px;
+  color: var(--text);
+}
+
+.splash-dots {
+  display: inline-block;
+  width: 22px;
+  text-align: left;
+}
+
+.splash-dots::before {
+  content: '...';
+  display: inline-block;
+  letter-spacing: 2px;
+  animation: dots 1s steps(4, end) infinite;
+}
+
+@keyframes dots {
+  0% {
+    clip-path: inset(0 100% 0 0);
+  }
+  25% {
+    clip-path: inset(0 66% 0 0);
+  }
+  50% {
+    clip-path: inset(0 33% 0 0);
+  }
+  75%,
+  100% {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@media (max-width: 760px) {
+  .splash {
+    /* True visual center on mobile */
+    padding: 0;
+  }
+
+  .splash-logo {
+    font-size: 28px;
+  }
+
+  .splash-card {
+    width: min(520px, 80vw);
+    margin: 0;
+    padding: 22px 16px;
+    border-radius: 20px;
+  }
+
+  .splash-sub {
+    font-size: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .splash-dots::before {
+    animation: none;
+  }
+}

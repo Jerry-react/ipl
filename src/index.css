@@ -78,7 +78,7 @@ body {
     border-radius: 18px;
     margin: 16px auto;
     min-height: calc(100svh - 32px);
-    overflow: hidden;
+    overflow: clip;
   }
 }
 

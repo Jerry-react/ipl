@@ -63,14 +63,102 @@ export function makeMatch({ date, position, amount, playerId }) {
   }
 }
 
-export function downloadJson(data, filename = 'ipl-contest-data.json') {
-  const blob = new Blob([JSON.stringify(ensureConfig(data), null, 2)], { type: 'application/json' })
+// Detect if running inside a Capacitor native app
+function isCapacitor() {
+  return typeof window !== 'undefined' && !!(window.Capacitor?.isNativePlatform?.())
+}
+
+// Convert blob to base64 string
+function blobToBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result.split(',')[1])
+    reader.onerror = reject
+    reader.readAsDataURL(blob)
+  })
+}
+
+// Save file natively via Capacitor Filesystem + Share
+async function nativeDownload(blob, filename) {
+  const { Filesystem, Directory } = await import('@capacitor/filesystem')
+  const { Share } = await import('@capacitor/share')
+  const base64 = await blobToBase64(blob)
+  const result = await Filesystem.writeFile({
+    path: filename,
+    data: base64,
+    directory: Directory.Cache,
+  })
+  await Share.share({
+    title: filename,
+    url: result.uri,
+    dialogTitle: `Save ${filename}`,
+  })
+}
+
+function triggerDownload(blob, filename) {
+  if (isCapacitor()) {
+    nativeDownload(blob, filename)
+    return
+  }
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
   a.download = filename
+  a.style.display = 'none'
+  document.body.appendChild(a)
   a.click()
-  URL.revokeObjectURL(url)
+  document.body.removeChild(a)
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
+}
+
+export function downloadJson(data, filename = 'ipl-contest-data.json') {
+  const blob = new Blob([JSON.stringify(ensureConfig(data), null, 2)], { type: 'application/json' })
+  triggerDownload(blob, filename)
+}
+
+export async function downloadExcel(data, filename = 'ipl-contest-data.xlsx') {
+  const XLSX = await import('xlsx')
+  const d = ensureConfig(data)
+
+  // Build players map
+  const playersById = new Map(d.players.map(p => [p.id, p.name]))
+
+  // Collect all player ids from matches too
+  const allPlayerIds = [...new Set(d.matches.map(m => m.playerId))]
+  const playerNames = allPlayerIds.map(id => playersById.get(id) || id)
+
+  // Group matches by batch
+  const byBatch = new Map()
+  for (const m of d.matches) {
+    const key = m.batchId ? `batch:${m.batchId}` : `legacy:${m.date}`
+    const row = byBatch.get(key) || { date: m.date, byPlayerId: new Map() }
+    row.byPlayerId.set(m.playerId, (row.byPlayerId.get(m.playerId) || 0) + (Number(m.amount) || 0))
+    byBatch.set(key, row)
+  }
+
+  const rows = Array.from(byBatch.values()).sort((a, b) => a.date < b.date ? -1 : 1)
+
+  // Build sheet rows
+  const header = ['Date', ...playerNames]
+  const sheetRows = rows.map(r => [
+    r.date,
+    ...allPlayerIds.map(id => r.byPlayerId.get(id) || 0)
+  ])
+
+  // Add carry-forward row if present
+  const cf = d.carryForward || {}
+  if (Object.keys(cf).length > 0) {
+    sheetRows.push(['Result', ...allPlayerIds.map(id => cf[id] || 0)])
+  }
+
+  const ws = XLSX.utils.aoa_to_sheet([header, ...sheetRows])
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, ws, 'IPL Contest')
+
+  // Generate blob manually for mobile compatibility
+  const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' })
+  const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+  triggerDownload(blob, filename)
 }
 
 export async function readJsonFile(file) {

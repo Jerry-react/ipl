@@ -1,5 +1,8 @@
 {
-  "appId": "com.example.app",
-  "appName": "ipl",
-  "webDir": "dist"
+  "appId": "com.iplcontest.app",
+  "appName": "IPL Contest",
+  "webDir": "dist",
+  "android": {
+    "allowMixedContent": true
+  }
 }
