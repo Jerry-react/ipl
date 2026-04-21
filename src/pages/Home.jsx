@@ -27,10 +27,39 @@ export default function Home() {
   const [data, setData] = useState(() => loadData())
   const fileRef = useRef(null)
   const xlsxRef = useRef(null)
+  const menuBtnRef = useRef(null)
+  const menuRef = useRef(null)
+  const [menuOpen, setMenuOpen] = useState(false)
 
   useEffect(() => {
     saveData(data)
   }, [data])
+
+  useEffect(() => {
+    if (!menuOpen) return
+
+    function onKeyDown(e) {
+      if (e.key === 'Escape') {
+        setMenuOpen(false)
+        menuBtnRef.current?.focus()
+      }
+    }
+
+    function onPointerDown(e) {
+      const target = e.target
+      if (!(target instanceof Node)) return
+      if (menuRef.current?.contains(target)) return
+      if (menuBtnRef.current?.contains(target)) return
+      setMenuOpen(false)
+    }
+
+    window.addEventListener('keydown', onKeyDown)
+    window.addEventListener('pointerdown', onPointerDown)
+    return () => {
+      window.removeEventListener('keydown', onKeyDown)
+      window.removeEventListener('pointerdown', onPointerDown)
+    }
+  }, [menuOpen])
 
   const playersById = useMemo(() => {
     const map = new Map()
@@ -204,26 +233,67 @@ export default function Home() {
   return (
     <div className="home">
       <header className="home-header">
-        <div>
+        <div className="home-header-row">
           <h1 className="home-title">IPL Contest</h1>
-          <p className="home-subtitle muted">No backend. Everything is saved locally as JSON.</p>
-        </div>
 
-        <div className="home-actions">
-          <button className="btn" type="button" onClick={() => downloadJson(data)}>
-            Export JSON
-          </button>
-          <input ref={fileRef} onChange={onImportFile} type="file" accept="application/json" hidden />
-          <button className="btn" type="button" onClick={() => fileRef.current?.click()}>
-            Import JSON
-          </button>
-          <input ref={xlsxRef} onChange={onImportExcel} type="file" accept=".xlsx,.xls" hidden />
-          <button className="btn" type="button" onClick={() => xlsxRef.current?.click()}>
-            Import Excel
-          </button>
-          <button className="btn btn-danger" type="button" onClick={resetAll}>
-            Reset
-          </button>
+          <div className="home-actions">
+            <input ref={fileRef} onChange={onImportFile} type="file" accept="application/json" hidden />
+            <input ref={xlsxRef} onChange={onImportExcel} type="file" accept=".xlsx,.xls" hidden />
+            <div className="menu">
+              <button
+                ref={menuBtnRef}
+                className="btn menu-trigger"
+                type="button"
+                aria-haspopup="menu"
+                aria-expanded={menuOpen}
+                aria-label="More options"
+                onClick={() => setMenuOpen((v) => !v)}
+              >
+                ⋮
+              </button>
+              {menuOpen ? (
+                <div ref={menuRef} className="menu-popover" role="menu" aria-label="Actions">
+                  <button className="menu-item" type="button" role="menuitem" onClick={() => downloadJson(data)}>
+                    Export JSON
+                  </button>
+                  <button
+                    className="menu-item"
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      setMenuOpen(false)
+                      fileRef.current?.click()
+                    }}
+                  >
+                    Import JSON
+                  </button>
+                  <button
+                    className="menu-item"
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      setMenuOpen(false)
+                      xlsxRef.current?.click()
+                    }}
+                  >
+                    Import Excel
+                  </button>
+                  <div className="menu-sep" role="separator" />
+                  <button
+                    className="menu-item menu-item--danger"
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      setMenuOpen(false)
+                      resetAll()
+                    }}
+                  >
+                    Reset
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          </div>
         </div>
       </header>
 
@@ -393,28 +463,30 @@ function ResultsTab({ totals, matches, playersById, onDeleteMatch }) {
         ) : (
           <>
             <p className="hint">Excel format: first column Date, next columns are player names.</p>
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  {sheetPlayers.map((p) => (
-                    <th key={p.id}>{p.name}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {sheet.rows.map((r) => {
-                  return (
-                    <tr key={r.key}>
-                      <td>{r.date}</td>
-                      {sheetPlayers.map((p) => (
-                        <td key={p.id}>{currency(r.byPlayerId.get(p.id) || 0)}</td>
-                      ))}
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
+            <div className="table-scroll" aria-label="Results sheet table">
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    {sheetPlayers.map((p) => (
+                      <th key={p.id}>{p.name}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {sheet.rows.map((r) => {
+                    return (
+                      <tr key={r.key}>
+                        <td>{r.date}</td>
+                        {sheetPlayers.map((p) => (
+                          <td key={p.id}>{currency(r.byPlayerId.get(p.id) || 0)}</td>
+                        ))}
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
           </>
         )}
       </section>
@@ -631,6 +703,7 @@ function AddTab({
                       <td>{p.name}</td>
                       <td>
                         <select
+                          className="select-lg"
                           value={pos}
                           onChange={(e) =>
                             setPositionsByPlayerId((prev) => ({
