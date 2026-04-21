@@ -10,7 +10,7 @@ workflows:
       - npm run build
       - npx cap sync android
       - cd android
-      - chmod +x gradlew
+      - cd android && chmod +x gradlew
       - ./gradlew assembleDebug
 
     artifacts:
