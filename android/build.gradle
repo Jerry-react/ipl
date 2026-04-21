@@ -9,9 +9,7 @@ buildscript {
     dependencies {
         classpath 'com.android.tools.build:gradle:8.13.0'
         classpath 'com.google.gms:google-services:4.4.4'
-
-        // NOTE: Do not place your application dependencies here; they belong
-        // in the individual module build.gradle files
+        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.25'
     }
 }
 
@@ -36,34 +34,18 @@ subprojects {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    // Force Kotlin JVM target to match Java
-    tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
-        kotlinOptions {
-            jvmTarget = "17"
-        }
-    }
-
-    // Force Android compile options (VERY IMPORTANT for Capacitor)
+    // Force Android compile options
     afterEvaluate { project ->
         if (project.hasProperty("android")) {
             project.android.compileOptions {
                 sourceCompatibility JavaVersion.VERSION_17
                 targetCompatibility JavaVersion.VERSION_17
             }
-            // Also set Kotlin options via android kotlinOptions if available
-            if (project.android.hasProperty("kotlinOptions")) {
-                project.android.kotlinOptions {
-                    jvmTarget = "17"
-                }
-            }
         }
-    }
-
-    // Force toolchain (safe fallback)
-    plugins.withType(JavaPlugin).configureEach {
-        java {
-            toolchain {
-                languageVersion = JavaLanguageVersion.of(17)
+        // Force Kotlin JVM target after project is evaluated
+        project.tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+            kotlinOptions {
+                jvmTarget = "17"
             }
         }
     }
