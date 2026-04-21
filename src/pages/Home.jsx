@@ -73,18 +73,22 @@ export default function Home() {
     const byPlayerId = new Map()
     const feesByPlayerId = new Map()
     for (const m of data.matches) {
+      if (m.fromExcel) continue  // Excel rows shown in sheet only; carry-forward covers their P&L
       const winnings = Number(m.amount) || 0
       const fee = Number(m.matchFee) || 0
       byPlayerId.set(m.playerId, (byPlayerId.get(m.playerId) || 0) + (winnings - fee))
       feesByPlayerId.set(m.playerId, (feesByPlayerId.get(m.playerId) || 0) + fee)
     }
     const carryForward = data.carryForward || {}
-    const rows = data.players.map((p) => ({
-      playerId: p.id,
-      name: p.name,
-      total: (byPlayerId.get(p.id) || 0) + (Number(carryForward[p.id]) || 0),
-      totalFees: feesByPlayerId.get(p.id) || 0,
-    }))
+    const rows = data.players.map((p) => {
+      const matchTotal = byPlayerId.get(p.id) || 0
+      return {
+        playerId: p.id,
+        name: p.name,
+        total: matchTotal + (Number(carryForward[p.id]) || 0),
+        totalFees: feesByPlayerId.get(p.id) || 0,
+      }
+    })
     rows.sort((a, b) => b.total - a.total || a.name.localeCompare(b.name))
     return rows
   }, [data.matches, data.players, data.carryForward])
