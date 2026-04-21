@@ -327,6 +327,42 @@ export default function Home() {
       ) : (
         <PlayersTab playersSorted={sortPlayers(data.players)} onAddPlayer={addPlayer} onRemovePlayer={removePlayer} />
       )}
+
+      <nav className="bottom-nav" aria-label="Bottom navigation">
+        <button
+          className="bottom-nav-item"
+          type="button"
+          aria-current={tab === 'results' ? 'page' : undefined}
+          onClick={() => setTab('results')}
+        >
+          <span className="bottom-nav-icon" aria-hidden="true">
+            🏆
+          </span>
+          <span className="bottom-nav-label">Results</span>
+        </button>
+        <button
+          className="bottom-nav-item bottom-nav-item--primary"
+          type="button"
+          aria-current={tab === 'add' ? 'page' : undefined}
+          onClick={() => setTab('add')}
+        >
+          <span className="bottom-nav-icon" aria-hidden="true">
+            ＋
+          </span>
+          <span className="bottom-nav-label">Add</span>
+        </button>
+        <button
+          className="bottom-nav-item"
+          type="button"
+          aria-current={tab === 'players' ? 'page' : undefined}
+          onClick={() => setTab('players')}
+        >
+          <span className="bottom-nav-icon" aria-hidden="true">
+            👤
+          </span>
+          <span className="bottom-nav-label">Players</span>
+        </button>
+      </nav>
     </div>
   )
 }
@@ -462,7 +498,6 @@ function ResultsTab({ totals, matches, playersById, onDeleteMatch }) {
           <p className="hint">No match entries yet.</p>
         ) : (
           <>
-            <p className="hint">Excel format: first column Date, next columns are player names.</p>
             <div className="table-scroll" aria-label="Results sheet table">
               <table className="table">
                 <thead>
@@ -533,7 +568,6 @@ function PlayersTab({ playersSorted, onAddPlayer, onRemovePlayer }) {
                 </button>
               </div>
             ))}
-            <p className="hint">Removing a player also removes their saved match entries.</p>
           </div>
         )}
       </section>
@@ -665,7 +699,24 @@ function AddTab({
     <div className="grid">
       <section className="card">
         <h2>Add match entry</h2>
-        {success ? <div className="toast toast--success">{success}</div> : null}
+        {success ? (
+          <div className="toast-backdrop" role="presentation" onClick={() => setSuccess('')}>
+            <div
+              className="toast toast--success toast--center"
+              role="status"
+              aria-live="polite"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <span className="toast-icon" aria-hidden="true">
+                ✅
+              </span>
+              <div className="toast-content">
+                <div className="toast-title">Saved</div>
+                <div className="toast-message">{success}</div>
+              </div>
+            </div>
+          </div>
+        ) : null}
         {playersSorted.length === 0 ? (
           <p className="hint">Add players in Players tab first.</p>
         ) : (

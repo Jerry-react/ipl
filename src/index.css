@@ -1,15 +1,21 @@
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
+  /* Dream11-inspired (sporty dark) defaults */
+  --text: rgba(255, 255, 255, 0.72);
+  --text-h: rgba(255, 255, 255, 0.92);
+  --bg: #0b0f14;
+  --surface: rgba(255, 255, 255, 0.04);
+  --surface-2: rgba(255, 255, 255, 0.06);
+  --border: rgba(255, 255, 255, 0.10);
+  --code-bg: rgba(255, 255, 255, 0.07);
+  --accent: #ff2d55;
+  --accent-bg: rgba(255, 45, 85, 0.14);
+  --accent-border: rgba(255, 45, 85, 0.42);
+  --social-bg: rgba(255, 255, 255, 0.06);
+  --ring: rgba(255, 45, 85, 0.65);
   --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+    rgba(0, 0, 0, 0.55) 0 14px 28px -8px, rgba(0, 0, 0, 0.35) 0 8px 16px -10px;
+  --shadow-soft:
+    rgba(0, 0, 0, 0.45) 0 10px 20px -10px, rgba(0, 0, 0, 0.22) 0 6px 12px -12px;
 
   --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
   --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
@@ -32,17 +38,10 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
+    /* keep same palette; just a touch brighter in dark-mode systems */
+    --text: rgba(255, 255, 255, 0.74);
+    --text-h: rgba(255, 255, 255, 0.94);
+    --bg: #0b0f14;
   }
 
   #social .button-icon {
@@ -57,8 +56,8 @@ body {
 
 #root {
   width: 100%;
-  max-width: 100%;
-  margin: 0;
+  max-width: 1200px;
+  margin: 0 auto;
   text-align: center;
   border-inline: 1px solid var(--border);
   min-height: 100svh;
@@ -70,6 +69,16 @@ body {
 @media (max-width: 760px) {
   #root {
     border-inline: none;
+  }
+}
+
+@media (min-width: 1400px) {
+  #root {
+    border-inline: 1px solid var(--border);
+    border-radius: 18px;
+    margin: 16px auto;
+    min-height: calc(100svh - 32px);
+    overflow: hidden;
   }
 }
 
