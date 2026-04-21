@@ -63,43 +63,7 @@ export function makeMatch({ date, position, amount, playerId }) {
   }
 }
 
-// Detect if running inside a Capacitor native app
-function isCapacitor() {
-  return typeof window !== 'undefined' && !!(window.Capacitor?.isNativePlatform?.())
-}
-
-// Convert blob to base64 string
-function blobToBase64(blob) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => resolve(reader.result.split(',')[1])
-    reader.onerror = reject
-    reader.readAsDataURL(blob)
-  })
-}
-
-// Save file natively via Capacitor Filesystem + Share
-async function nativeDownload(blob, filename) {
-  const { Filesystem, Directory } = await import('@capacitor/filesystem')
-  const { Share } = await import('@capacitor/share')
-  const base64 = await blobToBase64(blob)
-  const result = await Filesystem.writeFile({
-    path: filename,
-    data: base64,
-    directory: Directory.Cache,
-  })
-  await Share.share({
-    title: filename,
-    url: result.uri,
-    dialogTitle: `Save ${filename}`,
-  })
-}
-
 function triggerDownload(blob, filename) {
-  if (isCapacitor()) {
-    nativeDownload(blob, filename)
-    return
-  }
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
@@ -110,6 +74,7 @@ function triggerDownload(blob, filename) {
   document.body.removeChild(a)
   setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
+
 
 export function downloadJson(data, filename = 'ipl-contest-data.json') {
   const blob = new Blob([JSON.stringify(ensureConfig(data), null, 2)], { type: 'application/json' })
