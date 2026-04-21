@@ -4,6 +4,7 @@ workflows:
     max_build_duration: 60
     environment:
       node: latest
+      java: 17
 
     scripts:
       - npm install
