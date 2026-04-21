@@ -219,6 +219,38 @@ export default function Home() {
     setData((prev) => ({ ...prev, matches: prev.matches.filter((m) => m.id !== matchId) }))
   }
 
+  function deleteBatch(batchKey) {
+    setData((prev) => ({
+      ...prev,
+      matches: prev.matches.filter((m) => {
+        const key = m.batchId ? `batch:${m.batchId}` : `legacy:${m.date}`
+        return key !== batchKey
+      }),
+    }))
+  }
+
+  function editBatch(batchKey, { date, matchFee, positionsByPlayerId }) {
+    setData((prev) => ({
+      ...prev,
+      matches: prev.matches.map((m) => {
+        const key = m.batchId ? `batch:${m.batchId}` : `legacy:${m.date}`
+        if (key !== batchKey) return m
+        const pos = Number(positionsByPlayerId[m.playerId])
+        const fee = Number(matchFee) || 0
+        const players = prev.players
+        const totalPlayers = players.length || 1
+        const prizePool = fee * totalPlayers
+        const autoAmounts = {
+          1: prizePool * 0.5,
+          2: prizePool * 0.3,
+          3: prizePool * 0.2,
+        }
+        const amount = autoAmounts[pos] ?? 0
+        return { ...m, date, matchFee: fee, position: pos, amount }
+      }),
+    }))
+  }
+
   return (
     <div className="home">
       <header className="home-header">
@@ -292,6 +324,8 @@ export default function Home() {
           totals={totals}
           matches={matchesNewestFirst}
           onDeleteMatch={removeMatch}
+          onDeleteBatch={deleteBatch}
+          onEditBatch={editBatch}
           successMsg={successMsg}
         />
       ) : tab === 'add' ? (
@@ -350,7 +384,15 @@ export default function Home() {
   )
 }
 
-function ResultsTab({ totals, matches, playersById, onDeleteMatch, successMsg }) {
+function ResultsTab({ totals, matches, playersById, onDeleteMatch, onDeleteBatch, onEditBatch, successMsg }) {
+  const [editRow, setEditRow] = useState(null)   // { key, date, matchFee, positionsByPlayerId }
+  const [deleteKey, setDeleteKey] = useState(null) // batchKey to confirm delete
+  const [editToast, setEditToast] = useState(false)
+
+  function showEditToast() {
+    setEditToast(true)
+    setTimeout(() => setEditToast(false), 2500)
+  }
 
   // Count distinct matches (by batchId or date for legacy) and sum all fees
   const { matchCount, totalFees } = useMemo(() => {
@@ -426,11 +468,18 @@ function ResultsTab({ totals, matches, playersById, onDeleteMatch, successMsg })
   }, [matches])
 
   return (
+    <>
     <div className="grid">
       {successMsg && (
         <div className="toast-slide" role="status" aria-live="polite">
           <span className="toast-icon" aria-hidden="true">✅</span>
           <span className="toast-message">{successMsg}</span>
+        </div>
+      )}
+      {editToast && (
+        <div className="toast-slide toast-slide--warn" role="status" aria-live="polite">
+          <span className="toast-icon" aria-hidden="true">⚠️</span>
+          <span className="toast-message">Cannot edit — match fee & position data not available</span>
         </div>
       )}
       <section className="card">
@@ -488,35 +537,104 @@ function ResultsTab({ totals, matches, playersById, onDeleteMatch, successMsg })
         {matches.length === 0 ? (
           <p className="hint">No match entries yet.</p>
         ) : (
-          <>
-            <div className="table-scroll" aria-label="Results sheet table">
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>Date</th>
+          <div className="table-scroll-container" aria-label="Results sheet table">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  {sheetPlayers.map((p) => (
+                    <th key={p.id}>{p.name}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {sheet.rows.map((r) => (
+                  <tr key={r.key} className="tr-clickable" onClick={() => {
+                    const batchMatches = matches.filter(m => {
+                      const k = m.batchId ? `batch:${m.batchId}` : `legacy:${m.date}`
+                      return k === r.key
+                    })
+                    const fee = batchMatches[0]?.matchFee || 0
+                    const hasPositions = batchMatches.some(m => m.position && m.position > 0)
+                    // Excel-imported rows or legacy rows without fee/position can't be edited
+                    if (!fee && !hasPositions) {
+                      showEditToast()
+                      return
+                    }
+                    const pos = {}
+                    for (const m of batchMatches) pos[m.playerId] = m.position || 1
+                    setEditRow({ key: r.key, date: r.date, matchFee: fee, positionsByPlayerId: pos })
+                  }}>
+                    <td>{r.date ? r.date.split('-').reverse().join('/') : ''}</td>
                     {sheetPlayers.map((p) => (
-                      <th key={p.id}>{p.name}</th>
+                      <td key={p.id}>{currency(r.byPlayerId.get(p.id) || 0)}</td>
                     ))}
                   </tr>
-                </thead>
-                <tbody>
-                  {sheet.rows.map((r) => {
-                    return (
-                      <tr key={r.key}>
-                        <td>{r.date}</td>
-                        {sheetPlayers.map((p) => (
-                          <td key={p.id}>{currency(r.byPlayerId.get(p.id) || 0)}</td>
-                        ))}
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </section>
     </div>
+
+    {/* Edit batch popup */}
+    {editRow && (
+      <div className="popup-backdrop" onClick={() => setEditRow(null)}>
+        <div className="popup-card" onClick={e => e.stopPropagation()}>
+          <h2>Edit Match</h2>
+          <form className="grid" onSubmit={e => {
+            e.preventDefault()
+            onEditBatch(editRow.key, {
+              date: editRow.date,
+              matchFee: editRow.matchFee,
+              positionsByPlayerId: editRow.positionsByPlayerId,
+            })
+            setEditRow(null)
+          }}>
+            <label className="field">
+              Date
+              <input type="date" value={editRow.date} onChange={e => setEditRow(r => ({ ...r, date: e.target.value }))} required />
+            </label>
+            <label className="field">
+              Match Fee
+              <input type="number" min="0" value={editRow.matchFee} onChange={e => setEditRow(r => ({ ...r, matchFee: e.target.value }))} required />
+            </label>
+            {Object.entries(editRow.positionsByPlayerId).map(([pid, pos]) => {
+              const name = playersById.get(pid)?.name || pid
+              return (
+                <label key={pid} className="field">
+                  {name} — Position
+                  <input type="number" min="1" max="10" value={pos}
+                    onChange={e => setEditRow(r => ({ ...r, positionsByPlayerId: { ...r.positionsByPlayerId, [pid]: e.target.value } }))}
+                    required />
+                </label>
+              )
+            })}
+            <div className="inline">
+              <button className="btn btn-primary" type="submit">Save</button>
+              <button className="btn btn-danger" type="button" onClick={() => { setEditRow(null); setDeleteKey(editRow.key) }}>Delete</button>
+              <button className="btn" type="button" onClick={() => setEditRow(null)}>Cancel</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    )}
+
+    {/* Delete confirmation popup */}
+    {deleteKey && (
+      <div className="popup-backdrop" onClick={() => setDeleteKey(null)}>
+        <div className="popup-card" onClick={e => e.stopPropagation()}>
+          <h2>Delete Match?</h2>
+          <p style={{ marginBottom: '16px', color: 'var(--text)' }}>This will remove the match and deduct all winnings and fees from the leaderboard.</p>
+          <div className="inline">
+            <button className="btn btn-danger" type="button" onClick={() => { onDeleteBatch(deleteKey); setDeleteKey(null) }}>Delete</button>
+            <button className="btn" type="button" onClick={() => setDeleteKey(null)}>Cancel</button>
+          </div>
+        </div>
+      </div>
+    )}
+  </>
   )
 }
 

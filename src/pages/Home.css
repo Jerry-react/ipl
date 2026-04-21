@@ -177,15 +177,32 @@
   color: #ef4444;
 }
 
-.table-scroll {
-  width: 100%;
-  overflow-x: auto;
+.table-scroll-container {
+  max-height: 55vh;
+  overflow: auto;
+  border-radius: 12px;
+  border: 1px solid var(--border);
   -webkit-overflow-scrolling: touch;
 }
 
-.table-scroll .table {
-  width: 100%;
+.table-scroll-container .table {
+  border: none;
+  border-radius: 0;
   min-width: max-content;
+  width: 100%;
+}
+
+.table-scroll-container .table th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #000;
+}
+
+@media (max-width: 760px) {
+  .table-scroll-container {
+    max-height: 45vh;
+  }
 }
 
 .btn {
@@ -335,8 +352,6 @@
   width: 100%;
   border-collapse: collapse;
   font-size: 14px;
-  overflow: hidden;
-  border-radius: 12px;
   border: 1px solid var(--border);
   background: rgba(0, 0, 0, 0.18);
 }
@@ -352,7 +367,7 @@
 .table th {
   font-family: var(--mono);
   color: var(--text-h);
-  background: rgba(0, 0, 0, 0.34);
+  background: #000;
   position: sticky;
   top: 0;
   z-index: 1;
@@ -680,4 +695,49 @@
     white-space: normal;
     text-align: center;
   }
+}
+
+/* Clickable result row */
+.tr-clickable {
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+.tr-clickable:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Edit / Delete popup */
+.popup-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.popup-card {
+  background: #0f1318;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 20px;
+  width: min(480px, 100%);
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.popup-card h2 {
+  margin: 0;
+}
+
+.toast-slide--warn {
+  background: #b45309;
 }
