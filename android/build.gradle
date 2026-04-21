@@ -36,12 +36,25 @@ subprojects {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
+    // Force Kotlin JVM target to match Java
+    tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+        kotlinOptions {
+            jvmTarget = "17"
+        }
+    }
+
     // Force Android compile options (VERY IMPORTANT for Capacitor)
     afterEvaluate { project ->
         if (project.hasProperty("android")) {
             project.android.compileOptions {
                 sourceCompatibility JavaVersion.VERSION_17
                 targetCompatibility JavaVersion.VERSION_17
+            }
+            // Also set Kotlin options via android kotlinOptions if available
+            if (project.android.hasProperty("kotlinOptions")) {
+                project.android.kotlinOptions {
+                    jvmTarget = "17"
+                }
             }
         }
     }
